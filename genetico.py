@@ -5,24 +5,25 @@ genetico.py
 ------------
 
 Este modulo incluye el algoritmo genérico para algoritmos genéticos, así como un
-algoritmo genético adaptado a problemas de permutaciones, como el problema de las
-n-reinas o el agente viajero.
+algoritmo genético adaptado a problemas de permutaciones, como el problema de
+las n-reinas o el agente viajero.
 
-Como tarea se pide desarrollar otro algoritmo genético con el fin de probar otro tipo
-de métodos internos, así como ajustar ambos algortmos para que funcionen de la mejor
-manera posible.
+Como tarea se pide desarrollar otro algoritmo genético con el fin de probar
+otro tipobde métodos internos, así como ajustar ambos algortmos para que
+funcionen de la mejor manera posible.
 
 
-Para que funcione, este modulo debe de encontrarse en la misma carpeta que blocales.py
-y nreinas.py vistas en clase.
+Para que funcione, este modulo debe de encontrarse en la misma carpeta que
+blocales.py y nreinas.py vistas en clase.
 
 """
 
-__author__ = 'Escribe aquí tu nombre'
-
-import nreinas
+import math
 import random
 import time
+import nreinas
+
+__author__ = 'Escribe aquí tu nombre'
 
 
 class Genetico:
@@ -32,90 +33,145 @@ class Genetico:
 
     """
 
-    def busqueda(self, problema, n_poblacion=10, n_generaciones=30, elitismo=True):
+    def __init__(self, problema, n_poblacion):
+        self.problema = problema
+        self.inicializa_poblacion(n_poblacion)
+
+    def inicializa_poblacion(self, n_poblacion):
+        """
+        Inicializa la población para el algoritmo genético
+
+        @param n_poblacion: numero de población
+        @return: None
+
+        Internamente guarda self.npoblacion y self.poblacion
+
+        """
+        self.poblacion = [self.estado_a_cadena(self.problema.estado_aleatorio())
+                          for _ in range(n_poblacion)]
+        self.poblacion.sort(key=self.calcula_aptitud)
+        self.n_poblacion = n_poblacion
+        self.aptitud = [self.calcula_aptitud(individuo)
+                        for individuo in self.poblacion]
+
+    def busqueda(self, n_generaciones=30):
         """
         Algoritmo genético general
 
-        @param problema: Un objeto de la clase blocal.problema
-        @param n_poblacion: Entero con el tamaño de la población
         @param n_generaciones: Número de generaciones a simular
-        @param elitismo: Booleano, para aplicar o no el elitismo
-
         @return: Un estado del problema
 
         """
-        poblacion = [problema.estado_aleatorio() for _ in range(n_poblacion)]
-
         for _ in range(n_generaciones):
+            parejas = self.seleccion()
+            hijos = self.cruza(parejas)
+            self.mutacion(hijos)
+            self.reemplazo(hijos)
+        mas_apto = max(self.poblacion, key=self.calcula_aptitud)
+        return self.cadena_a_estado(mas_apto)
 
-            aptitud = [self.calcula_aptitud(individuo, problema.costo) for individuo in poblacion]
-
-            elite = min(poblacion, key=problema.costo) if elitismo else None
-
-            padres, madres = self.seleccion(poblacion, aptitud)
-
-            poblacion = self.mutacion(self.cruza_listas(padres, madres))
-
-            poblacion = poblacion[:n_poblacion]
-
-            if elitismo:
-                poblacion.append(elite)
-
-        e = min(poblacion, key=problema.costo)
-        return e
-
-    def calcula_aptitud(self, individuo, costo=None):
+    def estado_a_cadena(self, estado):
         """
-        Calcula la adaptación de un individuo al medio, mientras más adaptado mejor, por default
-        es inversamente proporcionl al costo (mayor costo, menor adaptción).
+        Convierte un estado a una cadena de cromosomas
 
-        @param individuo: Un estado el problema
-        @param costo: Una función de costo (recibe un estado y devuelve un número)
+        @param estado: Una tupla con un estado
+        @return: Una lista con una cadena de caracteres
 
+        Por default converte el estado en una lista.
+
+        """
+        return list(estado)
+
+    def cadena_a_estado(self, cadena):
+        """
+        Convierte una cadena de cromosomas a un estado
+
+        @param cadena: Una lista de cromosomas o valores
+        @return: Una tupla con un estado válido
+
+        Por default convierte la lista a tupla
+
+        """
+        return tuple(cadena)
+
+    def calcula_aptitud(self, individuo):
+        """
+        Calcula la adaptación de un individuo al medio, mientras más adaptado
+        mejor, mayor costo, menor adaptción.
+
+        @param individuo: Una lista de cromosomas
         @return un número con la adaptación del individuo
-        """
-        #return max(0, len(individuo) - costo(individuo))
-        return 1.0 / (1.0 + costo(individuo))
 
-    def seleccion(self, poblacion, aptitud):
+        Por default usa exp(-costo(estado))
+        """
+        return math.exp(-self.problema.costo(self.cadena_a_estado(individuo)))
+
+    def seleccion(self):
         """
         Seleccion de estados
 
-        @param poblacion: Una lista de individuos
-
-        @return: Dos listas, una con los padres y otra con las madres.
-        estas listas tienen una dimensión int(len(poblacion)/2)
+        @return: Una lista con pares de indices de los individuo que se van
+                 a cruzar
 
         """
-        raise NotImplementedError("¡Este metodo debe ser implementado por la subclase!")
+        raise NotImplementedError("falta implementar la selección")
 
-    def cruza_listas(self, padres, madres):
-        """
-        Cruza una lista de padres con una lista de madres, cada pareja da dos hijos
-
-        @param padres: Una lista de individuos
-        @param madres: Una lista de individuos
-
-        @return: Una lista de individuos
-
-        """
-        hijos = []
-        for (padre, madre) in zip(padres, madres):
-            hijos.extend(self.cruza(padre, madre))
-        return hijos
-
-    def cruza(self, padre, madre):
+    def cruza(self, parejas):
         """
         Cruza a un padre con una madre y devuelve una lista de hijos, mínimo 2
+
+        @param parejas: Una lista de tuplas (i,j) con los indices de los
+                        individuos de self.poblacion a cruzarse
+        @return Una lista de hijos (listas de cromosomas a su vez)
+
         """
-        raise NotImplementedError("¡Este metodo debe ser implementado por la subclase!")
+        return [self.cruza_individual(self.poblacion[i], self.poblacion[j])
+                for (i, j) in parejas]
+
+    def cruza_individual(self, cadena1, cadena2):
+        """
+        Cruza dos individuos representados por sus cadenas
+
+        @param cadena1: Una lista de cromosomas
+        @param cadena2: Una lista de cromosomas
+
+        @return: Un individuo nuevo
+
+        """
+        raise NotImplementedError("A implementar la cruza individual")
 
     def mutacion(self, poblacion):
         """
         Mutación de una población. Devuelve una población mutada
+        la cual se pasa por referencia (variables mutables)
+
+        @param poblacion: Una lista de listas de cromosomas
 
         """
-        raise NotImplementedError("¡Este metodo debe ser implementado por la subclase!")
+        raise NotImplementedError("A implementar la mutación")
+
+    def reemplazo(self, hijos):
+        """
+        Realiza el reemplazo generacional
+
+        @param hijos: Una lista de cromosomas de hijos que pueden usarse en el
+                      reemplazo
+        @return: None (todo lo cambia internamente)
+
+        Por default usamos solo el elitismo de conservar al mejor, solo si es
+        mejor que lo que hemos encontrado hasta el momento.
+
+        """
+        hijos.sort(key=self.calcula_aptitud, reverse=True)
+        apt_hijos = [self.calcula_aptitud(individuo) for individuo in hijos]
+        if apt_hijos[0] > self.aptitud[0]:
+            self.poblacion = hijos[:self.n_poblacion]
+            self.aptitud = apt_hijos[:self.n_poblacion]
+        else:
+            self.poblacion = [self.poblacion[0]] + hijos[:self.n_poblacion - 1]
+            self.aptitud = [self.aptitud[0]] + apt_hijos[:self.n_poblacion - 1]
+        del(hijos)
+
 
 
 class GeneticoPermutaciones1(Genetico):
@@ -123,26 +179,26 @@ class GeneticoPermutaciones1(Genetico):
     Clase con un algoritmo genético adaptado a problemas de permutaciones
 
     """
-    def __init__(self, prob_muta=0.01):
+    def __init__(self, problema, n_poblacion, prob_muta=0.01):
         """
         @param prob_muta : Probabilidad de mutación de un cromosoma (0.01 por defualt)
 
         """
+        Genetico.__init__(self, problema, n_poblacion)
         self.prob_muta = prob_muta
-        self.nombre = 'propuesto por el profesor con prob. de mutación ' + str(prob_muta)
+        self.nombre = 'propuesto por el profesor ' \
+                      'con prob. de mutación ' + str(prob_muta)
 
-    def seleccion(self, poblacion, aptitud):
+    def seleccion(self):
         """
-        Selección por torneo.
-
+        Selección por ruleta.
 
         """
-        padres = []
-        baraja = range(len(poblacion))
+
+        baraja = range(self.n_poblacion)
         random.shuffle(baraja)
-        for (ind1, ind2) in [(baraja[i], baraja[i+1]) for i in range(0, len(poblacion)-1, 2)]:
-            ganador = ind1 if aptitud[ind1] > aptitud[ind2] else ind2
-            padres.append(poblacion[ganador])
+        for :
+            ganador = ind1 if self.aptitud[ind1] > self.aptitud[ind2] else ind2
 
         madres = []
         random.shuffle(baraja)
