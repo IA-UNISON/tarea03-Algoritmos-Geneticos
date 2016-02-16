@@ -20,8 +20,6 @@ blocales.py y nreinas.py vistas en clase.
 
 import math
 import random
-import time
-import nreinas
 
 __author__ = 'Escribe aquí tu nombre'
 
@@ -49,7 +47,7 @@ class Genetico:
         """
         self.poblacion = [self.estado_a_cadena(self.problema.estado_aleatorio())
                           for _ in range(n_poblacion)]
-        self.poblacion.sort(key=self.calcula_aptitud)
+        self.poblacion.sort(key=self.calcula_aptitud, reverse=True)
         self.n_poblacion = n_poblacion
         self.aptitud = [self.calcula_aptitud(individuo)
                         for individuo in self.poblacion]
@@ -70,7 +68,8 @@ class Genetico:
         mas_apto = max(self.poblacion, key=self.calcula_aptitud)
         return self.cadena_a_estado(mas_apto)
 
-    def estado_a_cadena(self, estado):
+    @staticmethod
+    def estado_a_cadena(estado):
         """
         Convierte un estado a una cadena de cromosomas
 
@@ -82,7 +81,8 @@ class Genetico:
         """
         return list(estado)
 
-    def cadena_a_estado(self, cadena):
+    @staticmethod
+    def cadena_a_estado(cadena):
         """
         Convierte una cadena de cromosomas a un estado
 
@@ -102,9 +102,9 @@ class Genetico:
         @param individuo: Una lista de cromosomas
         @return un número con la adaptación del individuo
 
-        Por default usa exp(-costo(estado))
+        Por default usa 1 / (costo(estado) + 1)
         """
-        return math.exp(-self.problema.costo(self.cadena_a_estado(individuo)))
+        return 1 / (1.0 +self.problema.costo(self.cadena_a_estado(individuo)))
 
     def seleccion(self):
         """
@@ -125,7 +125,8 @@ class Genetico:
         @return Una lista de hijos (listas de cromosomas a su vez)
 
         """
-        return [self.cruza_individual(self.poblacion[i], self.poblacion[j])
+        return [self.cruza_individual(self.poblacion[i][:],
+                                      self.poblacion[j][:])
                 for (i, j) in parejas]
 
     def cruza_individual(self, cadena1, cadena2):
@@ -184,74 +185,89 @@ class GeneticoPermutaciones1(Genetico):
         @param prob_muta : Probabilidad de mutación de un cromosoma (0.01 por defualt)
 
         """
-        Genetico.__init__(self, problema, n_poblacion)
         self.prob_muta = prob_muta
         self.nombre = 'propuesto por el profesor ' \
                       'con prob. de mutación ' + str(prob_muta)
+        Genetico.__init__(self, problema, n_poblacion)
+
+    @staticmethod
+    def ruleta(aptitudes):
+        """
+        Regresa un indice de acuerdo a la lista de aptitudes, las cuales son números >= 0
+
+        @param aptitudes: Una lista de flotantes o enteros positivos
+        @return: El indice donde podríamos decidir en forma aleatoria quedarnos
+
+        """
+        aleatorio = random.random()
+        acumulado = 0
+        suma_aptitudes = 1.0 * sum(aptitudes)
+        for (i, aptitud) in enumerate(aptitudes):
+            acumulado += aptitud / suma_aptitudes
+            if aleatorio <= acumulado:
+                return i
+        raise ValueError("No debe pasar esto")
+
+    def seleccion_individual(self):
+        """
+        Realiza una única pareja por medio de la ruleta
+
+        @return: Una tupla con los pares a unirse
+
+        """
+        i = self.ruleta(self.aptitud[:])
+        j = self.ruleta(self.aptitud[:i] + self.aptitud[i+1:])
+        return i, j if j < i else j+1
 
     def seleccion(self):
         """
         Selección por ruleta.
 
         """
+        return [self.seleccion_individual()
+                for _ in range(self.n_poblacion)]
 
-        baraja = range(self.n_poblacion)
-        random.shuffle(baraja)
-        for :
-            ganador = ind1 if self.aptitud[ind1] > self.aptitud[ind2] else ind2
-
-        madres = []
-        random.shuffle(baraja)
-        for (ind1, ind2) in [(baraja[i], baraja[i+1]) for i in range(0, len(poblacion)-1, 2)]:
-            ganador = ind1 if aptitud[ind1] > aptitud[ind2] else ind2
-            madres.append(poblacion[ganador])
-
-        return padres, madres
-
-    def cruza(self, padre, madre):
+    def cruza_individual(self, cadena1, cadena2):
         """
         Cruza especial para problemas de permutaciones
 
-        @param padre: Una tupla con un individuo
-        @param madre: Una tupla con otro individuo
-
-        @return: Dos individuos resultado de cruzar padre y madre con permutaciones
+        @param cadena1: Una tupla con un individuo
+        @param cadena2: Una tupla con otro individuo
+        @return: Un individuo
 
         """
-        hijo1, hijo2 = list(padre), list(madre)
-        corte1 = random.randint(0, len(padre)-1)
-        corte2 = random.randint(corte1+1, len(padre))
-        for i in range(len(padre)):
-            if i < corte1 or i >= corte2:
-                hijo1[i], hijo2[i] = hijo2[i], hijo1[i]
-                while hijo1[i] in padre[corte1:corte2]:
-                    hijo1[i] = madre[padre.index(hijo1[i])]
-                while hijo2[i] in madre[corte1:corte2]:
-                    hijo2[i] = padre[madre.index(hijo2[i])]
-        return [tuple(hijo1), tuple(hijo2)]
+        hijo = cadena1[:]
+        len_cadena = len(hijo)
+        corte1 = random.randint(0, len_cadena - 1)
+        corte2 = random.randint(corte1 + 1, len_cadena)
+        evita = hijo[:corte1] + hijo[corte2:]
+        for i in range(corte1, corte2):
+            hijo[i] = cadena2[i]
+            while hijo[i] in evita:
+                hijo[i] = cadena2[cadena1.index(hijo[i])]
+        return hijo
 
     def mutacion(self, poblacion):
         """
-        Mutación para individus con permutaciones. Utiliza la variable local self.prob_muta
+        Mutación para individus con permutaciones.
+        Utiliza la variable local self.prob_muta
 
         @param poblacion: Una lista de individuos (tuplas).
 
         @return: Los individuos mutados
 
         """
-        poblacion_mutada = []
         for individuo in poblacion:
-            individuo = list(individuo)
             for i in range(len(individuo)):
                 if random.random() < self.prob_muta:
                     k = random.randint(0, len(individuo) - 1)
                     individuo[i], individuo[k] = individuo[k], individuo[i]
-            poblacion_mutada.append(tuple(individuo))
-        return poblacion_mutada
 
 
 ################################################################################################
 #  AQUI EMPIEZA LO QUE HAY QUE HACER CON LA TAREA
+#
+# Básicamente, hacer un algoritmo genético completo y diferente
 ################################################################################################
 
 class GeneticoPermutaciones2(Genetico):
@@ -261,124 +277,178 @@ class GeneticoPermutaciones2(Genetico):
     """
     def __init__(self):
         """
-        Aqui puedes poner algunos de los parámetros que quieras utilizar en tu clase
+        Aqui puedes poner algunos de los parámetros
+        que quieras utilizar en tu clase
+
+        Recuerda que puedes cambiar la forma de representación para que
+        se puedan utilizar operadores clásicos (esto implica reescribir
+        los métodos estáticos cadea_a_estado y estado_a_cadena).
 
         """
         self.nombre = 'propuesto por el alumno'
+        Genetico.__init__(self, problema, n_poblacion)
         #
-        # ------ IMPLEMENTA AQUI TU CÓDIGO ------------------------------------------------------------------------
+        # ------ IMPLEMENTA AQUI TU CÓDIGO -----------------------------------
         #
 
-    def calcula_aptitud(self, individuo, costo=None):
+    def calcula_aptitud(self, individuo):
         """
-        Desarrolla un método específico de medición de aptitud.
+        Calcula la adaptación de un individuo al medio, mientras más adaptado
+        mejor, mayor costo, menor adaptción.
+
+        @param individuo: Una lista de cromosomas
+        @return un número con la adaptación del individuo
 
         """
         ####################################################################
-        #                          20 PUNTOS
+        #                          10 PUNTOS
         ####################################################################
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
         #
         raise NotImplementedError("¡Este metodo debe ser implementado!")
 
-    def seleccion(self, poblacion, aptitud):
+    def seleccion(self):
         """
-        Desarrolla un método específico de selección.
+        Seleccion de estados
+
+        @return: Una lista con pares de indices de los individuo que se van
+                 a cruzar
 
         """
         #####################################################################
-        #                          20 PUNTOS
+        #                          10 PUNTOS
         #####################################################################
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO ----------------------------------
         #
         raise NotImplementedError("¡Este metodo debe ser implementado!")
 
-    def cruza(self, padre, madre):
+    def cruza_individual(self, cadena1, cadena2):
         """
-        Cruza especial para problemas de permutaciones
+        Cruza dos individuos representados por sus cadenas
 
-        @param padre: Una tupla con un individuo
-        @param madre: Una tupla con otro individuo
+        @param cadena1: Una lista de cromosomas
+        @param cadena2: Una lista de cromosomas
 
-        @return: Dos individuos resultado de cruzar padre y madre con permutaciones
+        @return: Un individuo nuevo
 
         """
-        hijo1, hijo2 = list(padre), list(madre)
-        corte1 = random.randint(0, len(padre)-1)
-        corte2 = random.randint(corte1+1, len(padre))
-        for i in range(len(padre)):
-            if i < corte1 or i >= corte2:
-                hijo1[i], hijo2[i] = hijo2[i], hijo1[i]
-                while hijo1[i] in padre[corte1:corte2]:
-                    hijo1[i] = madre[padre.index(hijo1[i])]
-                while hijo2[i] in madre[corte1:corte2]:
-                    hijo2[i] = padre[madre.index(hijo2[i])]
-        return [tuple(hijo1), tuple(hijo2)]
+        #####################################################################
+        #                          10 PUNTOS
+        #####################################################################
+        #
+        # ------ IMPLEMENTA AQUI TU CÓDIGO ----------------------------------
+        #
+        raise NotImplementedError("¡Este metodo debe ser implementado!")
 
     def mutacion(self, poblacion):
         """
-        Desarrolla un método específico de mutación.
+        Mutación para individuos con permutaciones.
+        Utiliza la variable local self.prob_muta
+
+        @param poblacion: Una lista de individuos (tuplas).
+
+        @return: Los individuos mutados
 
         """
         ###################################################################
-        #                          20 PUNTOS
+        #                          10 PUNTOS
         ###################################################################
         #
         # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
         #
         raise NotImplementedError("¡Este metodo debe ser implementado!")
 
+    def reemplazo(self, hijos):
+        """
+        Realiza el reemplazo generacional
 
-def prueba_genetico_nreinas(algo_genetico, problema, n_poblacion, n_generaciones):
-    tiempo_inicial = time.time()
-    solucion = algo_genetico.busqueda(problema, n_poblacion, n_generaciones, elitismo=True)
-    tiempo_final = time.time()
-    print "\nUtilizando el algoritmo genético " + algo_genetico.nombre
-    print "Con poblacion de dimensión ", n_poblacion
-    print "Con ", str(n_generaciones), " generaciones"
-    print "Costo de la solución encontrada: ", problema.costo(solucion)
-    print "Tiempo de ejecución en segundos: ", tiempo_final - tiempo_inicial
-    return solucion
+        @param hijos: Una lista de cromosomas de hijos que pueden usarse en el
+                      reemplazo
+        @return: None (todo lo cambia internamente)
 
+        Por default usamos solo el elitismo de conservar al mejor, solo si es
+        mejor que lo que hemos encontrado hasta el momento.
+
+        """
+        ###################################################################
+        #                          10 PUNTOS
+        ###################################################################
+        #
+        # ------ IMPLEMENTA AQUI TU CÓDIGO --------------------------------
+        #
+
+
+class ProblemaTonto(object):
+    """
+    Clase de problema tonto, solo para pruebas visuales
+
+    El costo es la suma del primer y último valor
+
+    """
+    def __init__(self, n):
+        self.n = n
+
+    def estado_aleatorio(self):
+        lista = range(self.n)
+        random.shuffle(lista)
+        return tuple(lista)
+
+    def costo(selfself, estado):
+        return estado[0] + estado[-1]
+
+
+# Ahora vamos a mostrar una forma visual de ver si el método que están
+# desarrollando tiene buena pinta o no.
+#
+# En general solo son algunas pruebas visuales y no puede considerarse todavía
+# como una unidad de prueba ni siquiera básica. Usarlo con su propio algoritmo
+# genético para evitar sorpresas.
 
 if __name__ == "__main__":
 
-    #################################################################################################
-    #                          20 PUNTOS
-    #################################################################################################
-    # Modifica los valores de la función siguiente (o el parámetro del algo_genetico)
-    # buscando que el algoritmo encuentre SIEMPRE una solución óptima, utilizando el menor tiempo
-    # posible en promedio. Realiza esto para las 8, 16 y 32 reinas.
-    #   -- ¿Cuales son en cada caso los mejores valores (escribelos abajo de esta lines)
-    #
-    #
-    #   -- ¿Que reglas podrías establecer para asignar valores segun tu experiencia
-    #
+    # Un objeto genético con permutaciones con una población de
+    # 10 individuos y una probabilidad de mutacion de 0.1
+    genetico = GeneticoPermutaciones1(ProblemaTonto(10), 10, 0.1)
 
-    solucion = prueba_genetico_nreinas(algo_genetico=GeneticoPermutaciones1(0.05),
-                                       problema=nreinas.ProblemaNreinas(16),
-                                       n_poblacion=32,
-                                       n_generaciones=100)
-    print solucion
+    print "El nombre del algortimo es: ", genetico.nombre
+    print "Y el conjunto de estados iniciales es: "
+    for (i, cadena) in enumerate(genetico.poblacion):
+        assert isinstance(cadena, list)
+        print i, ': ', cadena, " aptitud = ", genetico.aptitud[i]
+    print "\nPor la forma de estar programado" \
+          "la aptitud debe estar en orden descendente\n"
 
-    #################################################################################################
-    #                          20 PUNTOS
-    #################################################################################################
-    # Modifica los valores de la función siguiente (o los posibles parámetro del algo_genetico)
-    # buscando que el algoritmo encuentre SIEMPRE una solución óptima, utilizando el menor tiempo
-    # posible en promedio. Realiza esto para las 8, 16 y 32 reinas.
-    #   -- ¿Cuales son en cada caso los mejores valores (escribelos abajo de esta lines)
-    #
-    #
-    #   -- ¿Que reglas podrías establecer para asignar valores segun tu experiencia? Escribelo aqui
-    #   abajo, utilizando tnto espacio como consideres necesario.
-    #
-    # Recuerda de quitar los comentarios de las lineas siguientes:
+    parejas = genetico.seleccion()
+    print "Un ejemplo de parejitas sería:"
+    for (i, j) in parejas:
+        print "estado ", i, " se reproduce con el estado ", j
+    print "\nLos mejores se espera se reproduzcan más\n"
 
-    # solucion = prueba_genetico_nreinas(algo_genetico=GeneticoPermutaciones2(),
-    #                                        problema=nreinas.ProblemaNreinas(16),
-    #                                        n_poblacion=32,
-    #                                        n_generaciones=500)
-    # print solucion
+    cadena1 = genetico.poblacion[parejas[0][0]]
+    cadena2 = genetico.poblacion[parejas[0][1]]
+    hijo = genetico.cruza_individual(cadena1, cadena2)
+    print "Y para observar la cruza tenemos: "
+    print "progenitor 1: ", cadena1
+    print "progenitor 2: ", cadena2
+    print "descendiente: ", hijo
+
+    hijos = genetico.cruza(parejas)
+    print "Haciendo una cruza de todas las parejas tenemos que: "
+    for (i, cadena) in enumerate(hijos):
+        assert isinstance(cadena, list)
+        print i, ': ', cadena
+    genetico.mutacion(hijos)
+    print "Y después de la mutación tenemos:"
+    for (i, cadena) in enumerate(hijos):
+        assert isinstance(cadena, list)
+        print i, ': ', cadena
+
+    mejor = genetico.busqueda(30)
+    print "\n\nSi iteramos por 30 generaciones tenemos que\n" \
+          "el estado que encontramos con menor costo es:\n"
+    print mejor
+    print "\nQue debería tener el 0 y el 1 a los extremos"
+
+
