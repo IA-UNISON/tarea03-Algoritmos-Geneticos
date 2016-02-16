@@ -6,11 +6,12 @@ de las n-reinas para aprender a ajustarlos y probarlos.
 
 """
 
-__author__ = 'juliowaissman'
-
 import time
 import nreinas
 import genetico
+
+__author__ = 'juliowaissman'
+
 
 def prueba_genetico(algo_genetico, n_poblacion, n_generaciones, verbose=False):
     """
