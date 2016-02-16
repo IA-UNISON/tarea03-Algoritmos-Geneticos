@@ -22,11 +22,12 @@ Los objetivos de la tarea son los siguientes:
 Eventualmente, se espera una mejor comprensión del uso de clases y objetos en Python, así como las
 formas para pasar parámetros a funciones.
 
-La tarea consiste de 3 archivos:
+La tarea consiste de 4 archivos:
 
-1. El archivo ´genetico.py´ que contiene la tarea y es el único que se debe modificar.
-2. E archivo ´blocales.py´ para la definición de problema de búsqueda local.
-3. El archivo ´nreinas.py´ con la definición de las n-reinas.
+1. El archivo ´genetico.py´ que contiene la tarea se debe modificar.
+2. El archivo ´genetico_nreinas´ que tambien contiene parte de la tarea a realizar.
+3. El archivo ´blocales.py´ para la definición de problema de búsqueda local.
+4. El archivo ´nreinas.py´ con la definición de las n-reinas.
 
-Los últimos archivos son exactamente los mismos que los utilizados en la tarea 2 
+Los últimos dos archivos son exactamente los mismos que los utilizados en la tarea 2
 y no deben de ser modificados.
