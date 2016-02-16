@@ -18,7 +18,6 @@ blocales.py y nreinas.py vistas en clase.
 
 """
 
-import math
 import random
 
 __author__ = 'Escribe aquí tu nombre'
@@ -104,7 +103,7 @@ class Genetico:
 
         Por default usa 1 / (costo(estado) + 1)
         """
-        return 1 / (1.0 +self.problema.costo(self.cadena_a_estado(individuo)))
+        return 1 / (1.0 + self.problema.costo(self.cadena_a_estado(individuo)))
 
     def seleccion(self):
         """
@@ -172,7 +171,6 @@ class Genetico:
             self.poblacion = [self.poblacion[0]] + hijos[:self.n_poblacion - 1]
             self.aptitud = [self.aptitud[0]] + apt_hijos[:self.n_poblacion - 1]
         del(hijos)
-
 
 
 class GeneticoPermutaciones1(Genetico):
@@ -264,18 +262,18 @@ class GeneticoPermutaciones1(Genetico):
                     individuo[i], individuo[k] = individuo[k], individuo[i]
 
 
-################################################################################################
+##############################################################################
 #  AQUI EMPIEZA LO QUE HAY QUE HACER CON LA TAREA
 #
 # Básicamente, hacer un algoritmo genético completo y diferente
-################################################################################################
+##############################################################################
 
 class GeneticoPermutaciones2(Genetico):
     """
     Clase con un algoritmo genético adaptado a problemas de permutaciones
 
     """
-    def __init__(self):
+    def __init__(self, problema, n_poblacion):
         """
         Aqui puedes poner algunos de los parámetros
         que quieras utilizar en tu clase
