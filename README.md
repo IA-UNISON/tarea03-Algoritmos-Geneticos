@@ -1,7 +1,7 @@
 Tarea 3: Algoritmos Genéticos
 =============================
 
-**Fecha de entrega: 3 de marzo de 2015**
+
 
 Descripción
 ------------
