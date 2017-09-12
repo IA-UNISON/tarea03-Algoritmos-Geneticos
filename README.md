@@ -1,4 +1,4 @@
-* Tarea 3: Algoritmos Genéticos
+# Tarea 3: Algoritmos Genéticos
 
 
 En esta tarea vamos a jugar un poco y modificar un algoritmo genético
